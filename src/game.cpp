@@ -79,37 +79,39 @@ void resetLevel() {
 void handleInput(int input) {
     switch (gameState.gameState) {
         case GAME_MENU:
-            handleMenuInput(input);
+            // 菜单输入现在直接在showMainMenu中处理
+            // 此处保留接口，但内部不需要实现
             break;
 
         case GAME_PLAYING:
             switch (input) {
-                case 'w': // 上
-                case 'W':
-                case 72:  // 方向键上
+                case 'W': // 上 (注意大小写都支持)
+                case 'w':
+                case VK_UP:  // 使用VK_UP等Windows虚拟键码
                     movePlayer(UP);
                     break;
-                case 's': // 下
-                case 'S':
-                case 80:  // 方向键下
+                case 'S': // 下
+                case 's':
+                case VK_DOWN:
                     movePlayer(DOWN);
                     break;
-                case 'a': // 左
-                case 'A':
-                case 75:  // 方向键左
+                case 'A': // 左
+                case 'a':
+                case VK_LEFT:
                     movePlayer(LEFT);
                     break;
-                case 'd': // 右
-                case 'D':
-                case 77:  // 方向键右
+                case 'D': // 右
+                case 'd':
+                case VK_RIGHT:
                     movePlayer(RIGHT);
                     break;
-                case 'r': // 重置关卡
-                case 'R':
+                case 'R': // 重置关卡
+                case 'r':
                     resetLevel();
                     break;
-                case 27:  // ESC键，返回主菜单
+                case VK_ESCAPE:  // ESC键，返回主菜单
                     gameState.gameState = GAME_MENU;
+                    // 游戏逻辑中只负责改变状态，不直接调用UI函数
                     break;
             }
             
@@ -120,24 +122,11 @@ void handleInput(int input) {
             break;
 
         case GAME_WON:
-            if (input == '\r' || input == ' ') { // 回车或空格
-                if (gameState.currentLevel < MAX_LEVELS) {
-                    // 进入下一关
-                    loadLevel(gameState.currentLevel + 1);
-                } else {
-                    // 所有关卡完成，返回主菜单
-                    gameState.gameState = GAME_MENU;
-                }
-            }
+            // 胜利界面的输入现在在showWinScreen中处理
             break;
 
         case GAME_SELECT:
-            // 关卡选择
-            if (input >= '1' && input <= '0' + MAX_LEVELS) {
-                loadLevel(input - '0');
-            } else if (input == 27) { // ESC键，返回主菜单
-                gameState.gameState = GAME_MENU;
-            }
+            // 关卡选择的输入现在在showLevelSelect中处理
             break;
     }
 }
@@ -245,4 +234,4 @@ int checkWin() {
 // 获取游戏状态
 GameState* getGameState() {
     return &gameState;
-} 
+}

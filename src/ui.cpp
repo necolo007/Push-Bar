@@ -18,6 +18,8 @@ IMAGE img_player_left_walk, img_player_right_walk;
 // 玩家动画状态变量
 PlayerAnim playerAnim;
 
+// 菜单状态变量
+MenuState menuState;
 
 // 加载图片资源
 void initUIResources() {
@@ -43,88 +45,149 @@ void initUIResources() {
 // 释放图片资源（EasyX 无需手动释放，但可留空以便扩展）
 void freeUIResources() {}
 
-// 清屏函数
+// 初始化文本设置
+void initTextSettings() {
+    // 设置背景模式为透明
+    setbkmode(TRANSPARENT);
+}
+
+// 清屏函数 - 使用EasyX的cleardevice代替
 void clearScreen() {
-    system("cls");
+    cleardevice();
 }
 
-// 设置控制台光标位置
+// 处理EasyX消息循环
+void processWindowMessage() {
+    // 检查是否有消息
+    ExMessage msg;
+    if (peekmessage(&msg, EM_KEY)) {
+        if (msg.message == WM_KEYDOWN) {
+            // 将EasyX按键消息转换为字符输入
+            int input;
+            switch (msg.vkcode) {
+                case VK_UP:    input = 72; break;
+                case VK_DOWN:  input = 80; break;
+                case VK_LEFT:  input = 75; break;
+                case VK_RIGHT: input = 77; break;
+                case VK_ESCAPE: input = 27; break;
+                case VK_RETURN: input = '\r'; break;
+                case VK_SPACE:  input = ' '; break;
+                default: input = msg.vkcode; break;
+            }
+            // 处理输入
+            handleInput(input);
+        }
+    }
+}
+
+// 设置控制台光标位置 - 在图形界面中不需要
 void gotoxy(int x, int y) {
-    COORD coord;
-    coord.X = x;
-    coord.Y = y;
-    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
+    // 在图形界面中这个函数不会被使用
 }
 
-// 隐藏控制台光标
-void hideCursor() {
-    CONSOLE_CURSOR_INFO cursor_info = {1, 0};
-    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursor_info);
-}
-
-// 显示控制台光标
-void showCursor() {
-    CONSOLE_CURSOR_INFO cursor_info = {1, 1};
-    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursor_info);
+// 绘制菜单项
+void drawMenuItem(int x, int y, const char* text, bool selected) {
+    // 设置文本样式
+    settextstyle(28, 0, _T("Arial"));
+    setbkmode(TRANSPARENT);
+    
+    if (selected) {
+        // 选中项的样式
+        settextcolor(RGB(255, 0, 0));  // 红色
+        TCHAR buffer[256];
+        _stprintf(buffer, _T("> %s <"), text);
+        outtextxy(x - 20, y, buffer);
+    } else {
+        // 未选中项的样式
+        settextcolor(RGB(0, 0, 0));    // 黑色
+        outtextxy(x, y, text);
+    }
 }
 
 // 显示主菜单
 void showMainMenu() {
-    clearScreen();
-    hideCursor();
+    // 初始化菜单状态
+    menuState.selectedItem = 0;
+    menuState.menuItemCount = 4;
+    menuState.menuActive = true;
     
-    printf("\n\n");
-    printf("        ★★★ 推箱子游戏 ★★★\n\n");
-    printf("        1. 开始游戏\n");
-    printf("        2. 选择关卡\n");
-    printf("        3. 游戏说明\n");
-    printf("        4. 退出游戏\n\n");
-    printf("        请选择 (1-4): ");
-
-    // 等待用户输入
-    int input;
-    while (1) {
-        input = _getch();
-        handleMenuInput(input);
+    // 初始化文本设置
+    initTextSettings();
+    
+    // 菜单循环
+    while (menuState.menuActive) {
+        // 清屏并设置背景
+        cleardevice();
+        setbkcolor(RGB(220, 220, 220));
+        cleardevice();
+        
+        // 绘制标题
+        settextstyle(40, 0, _T("Arial"));
+        settextcolor(RGB(0, 0, 180));
+        setbkmode(TRANSPARENT);
+        outtextxy(300, 100, _T("PUSH BOX GAME"));
+        
+        // 绘制菜单项
+        const char* menuItems[] = {"Start Game", "Select Level", "Instructions", "Exit Game"};
+        for (int i = 0; i < menuState.menuItemCount; i++) {
+            drawMenuItem(360, 200 + i * 60, menuItems[i], i == menuState.selectedItem);
+        }
+        
+        // 绘制操作提示
+        settextstyle(20, 0, _T("Arial"));
+        settextcolor(RGB(100, 100, 100));
+        outtextxy(300, 500, _T("Up/Down to select, Enter to confirm"));
+        
+        // 刷新屏幕
+        FlushBatchDraw();
+        
+        // 处理输入
+        ExMessage msg;
+        if (peekmessage(&msg, EM_KEY)) {
+            if (msg.message == WM_KEYDOWN) {
+                switch (msg.vkcode) {
+                    case VK_UP:
+                        menuState.selectedItem = (menuState.selectedItem + menuState.menuItemCount - 1) % menuState.menuItemCount;
+                        break;
+                    case VK_DOWN:
+                        menuState.selectedItem = (menuState.selectedItem + 1) % menuState.menuItemCount;
+                        break;
+                    case VK_RETURN:
+                        switch (menuState.selectedItem) {
+                            case 0: // 开始游戏
+                                menuState.menuActive = false;
+                                if (loadLevel(1)) {
+                                    showGame();
+                                }
+                                break;
+                            case 1: // 选择关卡
+                                menuState.menuActive = false;
+                                getGameState()->gameState = GAME_SELECT;
+                                showLevelSelect();
+                                break;
+                            case 2: // 游戏说明
+                                menuState.menuActive = false;
+                                showInstructions();
+                                break;
+                            case 3: // 退出游戏
+                                exit(0);
+                                break;
+                        }
+                        break;
+                }
+            }
+        }
+        
+        // 控制帧率
+        Sleep(50);
     }
 }
 
-// 处理菜单输入
+// 处理菜单输入 - 在新的消息处理中不需要这个函数，但保留接口
 void handleMenuInput(int input) {
+    // 此函数不再需要，但保留接口兼容性
     GameState* gameState = getGameState();
-    
-    switch (gameState->gameState) {
-        case GAME_MENU:
-            switch (input) {
-                case '1': // 开始游戏
-                    if (loadLevel(1)) {
-                        showGame();
-                    }
-                    break;
-                    
-                case '2': // 选择关卡
-                    gameState->gameState = GAME_SELECT;
-                    showLevelSelect();
-                    break;
-                    
-                case '3': // 游戏说明
-                    showInstructions();
-                    break;
-                    
-                case '4': // 退出游戏
-                    clearScreen();
-                    showCursor();
-                    exit(0);
-                    break;
-            }
-            break;
-            
-        case GAME_SELECT:
-            // 在showLevelSelect中处理
-            break;
-        
-        // 其他状态的输入处理已在game.c中的handleInput函数中完成
-    }
+    // 将直接在菜单绘制函数中处理输入
 }
 
 // 显示游戏界面
@@ -134,14 +197,21 @@ void showGame() {
     int offsetX = 50, offsetY = 80; // 地图绘制起点
     int goalSize = 32; // 目标点图片尺寸
 
+    // 初始化文本设置
+    initTextSettings();
+
+    // 开始批量绘制
+    BeginBatchDraw();
+    
     while (gameState->gameState == GAME_PLAYING) {
         cleardevice();
-        setbkmode(TRANSPARENT);
+        
+        settextstyle(24, 0, _T("Arial"));
         settextcolor(RGB(0,0,0));
         TCHAR info[128];
-        _stprintf(info, _T("第 %d 关  步数: %d  得分: %d"), gameState->currentLevel, gameState->steps, gameState->score);
+        _stprintf(info, _T("Level %d  Steps: %d  Score: %d"), gameState->currentLevel, gameState->steps, gameState->score);
         outtextxy(offsetX, 20, info);
-        outtextxy(offsetX, 40, _T("操作: WASD/方向键-移动 R-重置关卡 ESC-返回菜单"));
+        outtextxy(offsetX, 40, _T("Controls: WASD/Arrows-Move R-Reset ESC-Menu"));
 
         for (int y = 0; y < gameState->mapHeight; y++) {
             for (int x = 0; x < gameState->mapWidth; x++) {
@@ -193,155 +263,235 @@ void showGame() {
                 }
             }
         }
-        // 等待用户输入
-        int input = _getch();
-        if (input == 224) input = _getch();
-        handleInput(input);
-        if (gameState->gameState == GAME_WON) {
-            showWinScreen();
+        
+        // 刷新屏幕
+        FlushBatchDraw();
+        
+        // 处理输入
+        processWindowMessage();
+        
+        // 如果游戏状态改变，退出游戏循环
+        if (gameState->gameState != GAME_PLAYING) {
+            break;
         }
+        
+        // 控制帧率
+        Sleep(30);
+    }
+    
+    // 结束批量绘制
+    EndBatchDraw();
+    
+    // 根据游戏状态转到对应界面
+    if (gameState->gameState == GAME_WON) {
+        showWinScreen();
+    } else if (gameState->gameState == GAME_MENU) {
+        resetGameToMenu();  // 重置游戏状态到主菜单
+        showMainMenu();
     }
 }
 
 // 显示游戏胜利界面
 void showWinScreen() {
     GameState* gameState = getGameState();
+    bool winScreenActive = true;
     
-    clearScreen();
+    // 初始化文本设置
+    initTextSettings();
     
-    printf("\n\n\n");
-    printf("        ★★★ 恭喜过关！★★★\n\n");
-    printf("        关卡: %d\n", gameState->currentLevel);
-    printf("        步数: %d\n", gameState->steps);
-    printf("        得分: %d\n\n", gameState->score);
-    
-    if (gameState->currentLevel < MAX_LEVELS) {
-        printf("        按回车键或空格键继续下一关...\n");
-    } else {
-        printf("        恭喜你完成了所有关卡！\n");
-        printf("        按回车键或空格键返回主菜单...\n");
-    }
-    
-    // 等待用户输入
-    int input;
-    while (1) {
-        input = _getch();
-        handleInput(input);
+    while (winScreenActive && gameState->gameState == GAME_WON) {
+        cleardevice();
+        setbkcolor(RGB(240, 240, 200));
+        cleardevice();
         
-        if (gameState->gameState != GAME_WON) {
-            // 状态已经改变，退出等待
-            if (gameState->gameState == GAME_PLAYING) {
-                // 进入下一关
-                showGame();
-            } else if (gameState->gameState == GAME_MENU) {
-                // 返回主菜单
-                showMainMenu();
-            }
-            break;
+        // 绘制胜利信息
+        settextstyle(40, 0, _T("Arial"));
+        settextcolor(RGB(0, 180, 0));
+        setbkmode(TRANSPARENT);
+        outtextxy(300, 150, _T("Level Complete!"));
+        
+        // 显示统计信息
+        settextstyle(28, 0, _T("Arial"));
+        settextcolor(RGB(0, 0, 0));
+        TCHAR info[128];
+        _stprintf(info, _T("Total Steps: %d  Total Score: %d"), gameState->steps, gameState->score);
+        outtextxy(310, 240, info);
+        
+        // 下一步提示
+        settextstyle(24, 0, _T("Arial"));
+        if (gameState->currentLevel < MAX_LEVELS) {
+            outtextxy(260, 320, _T("Press Enter/Space for next level"));
+        } else {
+            outtextxy(280, 320, _T("All levels complete!"));
+            outtextxy(290, 360, _T("Press Enter to return to menu"));
         }
+        
+        // 刷新屏幕
+        FlushBatchDraw();
+        
+        // 处理输入
+        ExMessage msg;
+        if (peekmessage(&msg, EM_KEY)) {
+            if (msg.message == WM_KEYDOWN) {
+                if (msg.vkcode == VK_RETURN || msg.vkcode == VK_SPACE) {
+                    winScreenActive = false;
+                    
+                    if (gameState->currentLevel < MAX_LEVELS) {
+                        // 进入下一关
+                        loadLevel(gameState->currentLevel + 1);
+                        showGame();
+                    } else {
+                        // 所有关卡完成，强制返回主菜单
+                        resetGameToMenu();  // 重置游戏状态
+                        showMainMenu();     // 显示主菜单
+                    }
+                } else if (msg.vkcode == VK_ESCAPE) {
+                    // ESC键也可以返回主菜单
+                    winScreenActive = false;
+                    resetGameToMenu();  // 重置游戏状态
+                    showMainMenu();
+                }
+            }
+        }
+        
+        // 控制帧率
+        Sleep(50);
     }
 }
 
 // 显示关卡选择界面
 void showLevelSelect() {
     GameState* gameState = getGameState();
-    int availableLevels = getAvailableLevels();
+    int selectedLevel = 1;
+    bool levelSelectActive = true;
     
-    clearScreen();
+    // 初始化文本设置
+    initTextSettings();
     
-    printf("\n\n");
-    printf("        ★★★ 选择关卡 ★★★\n\n");
-    
-    for (int i = 1; i <= availableLevels; i++) {
-        printf("        %d. 第 %d 关\n", i, i);
-    }
-    
-    printf("\n        ESC. 返回主菜单\n\n");
-    printf("        请选择关卡 (1-%d): ", availableLevels);
-    
-    // 等待用户输入
-    int input;
-    while (1) {
-        input = _getch();
+    while (levelSelectActive && gameState->gameState == GAME_SELECT) {
+        cleardevice();
+        setbkcolor(RGB(220, 240, 240));
+        cleardevice();
         
-        if (input == 27) { // ESC
-            gameState->gameState = GAME_MENU;
-            showMainMenu();
-            break;
-        } else if (input >= '1' && input <= '0' + availableLevels) {
-            int level = input - '0';
-            if (loadLevel(level)) {
-                showGame();
+        // 绘制标题
+        settextstyle(36, 0, _T("Arial"));
+        settextcolor(RGB(0, 0, 150));
+        setbkmode(TRANSPARENT);
+        outtextxy(330, 100, _T("Select Level"));
+        
+        // 绘制关卡选项
+        settextstyle(28, 0, _T("Arial"));
+        for (int i = 1; i <= MAX_LEVELS; i++) {
+            TCHAR levelText[20];
+            _stprintf(levelText, _T("Level %d"), i);
+            
+            if (i == selectedLevel) {
+                settextcolor(RGB(255, 0, 0));
+                outtextxy(380 - 20, 180 + (i - 1) * 50, _T(">"));
+                outtextxy(380, 180 + (i - 1) * 50, levelText);
+                outtextxy(480 + 10, 180 + (i - 1) * 50, _T("<"));
+            } else {
+                settextcolor(RGB(0, 0, 0));
+                outtextxy(380, 180 + (i - 1) * 50, levelText);
             }
-            break;
         }
+        
+        // 绘制操作提示
+        settextstyle(20, 0, _T("Arial"));
+        settextcolor(RGB(100, 100, 100));
+        outtextxy(260, 500, _T("Up/Down to select, Enter to confirm, ESC to return"));
+        
+        // 刷新屏幕
+        FlushBatchDraw();
+        
+        // 处理输入
+        ExMessage msg;
+        if (peekmessage(&msg, EM_KEY)) {
+            if (msg.message == WM_KEYDOWN) {
+                switch (msg.vkcode) {
+                    case VK_UP:
+                        if (selectedLevel > 1)
+                            selectedLevel--;
+                        break;
+                    case VK_DOWN:
+                        if (selectedLevel < MAX_LEVELS)
+                            selectedLevel++;
+                        break;
+                    case VK_RETURN:
+                        levelSelectActive = false;
+                        loadLevel(selectedLevel);
+                        showGame();
+                        break;
+                    case VK_ESCAPE:
+                        levelSelectActive = false;
+                        resetGameToMenu();  // 重置游戏状态
+                        showMainMenu();
+                        break;
+                }
+            }
+        }
+        
+        // 控制帧率
+        Sleep(50);
     }
 }
 
-// 从文件加载并显示操作说明
+// 显示操作说明
 void showInstructions() {
-    clearScreen();
+    bool instructionsActive = true;
     
-    printf("\n");
-    printf("        ★★★ 游戏说明 ★★★\n\n");
+    // 初始化文本设置
+    initTextSettings();
     
-    // 尝试从文件读取说明
-    FILE *file = fopen("instructions.txt", "r");
-    if (file) {
-        char line[100];
-        while (fgets(line, sizeof(line), file)) {
-            printf("        %s", line);
+    while (instructionsActive) {
+        cleardevice();
+        setbkcolor(RGB(240, 240, 240));
+        cleardevice();
+        
+        // 绘制标题
+        settextstyle(36, 0, _T("Arial"));
+        settextcolor(RGB(0, 100, 150));
+        setbkmode(TRANSPARENT);
+        outtextxy(330, 80, _T("Instructions"));
+        
+        // 绘制说明内容
+        settextstyle(24, 0, _T("Arial"));
+        settextcolor(RGB(0, 0, 0));
+        int y = 150;
+        int lineHeight = 36;
+        
+        outtextxy(200, y, _T("Game Objective:")); y += lineHeight;
+        outtextxy(200, y, _T("Push all boxes to the target positions")); y += lineHeight * 1.5;
+        
+        outtextxy(200, y, _T("Controls:")); y += lineHeight;
+        outtextxy(200, y, _T("Up/W: Move up")); y += lineHeight;
+        outtextxy(200, y, _T("Down/S: Move down")); y += lineHeight;
+        outtextxy(200, y, _T("Left/A: Move left")); y += lineHeight;
+        outtextxy(200, y, _T("Right/D: Move right")); y += lineHeight;
+        outtextxy(200, y, _T("R: Reset current level")); y += lineHeight;
+        outtextxy(200, y, _T("ESC: Return to main menu")); y += lineHeight * 1.5;
+        
+        // 绘制返回提示
+        settextstyle(20, 0, _T("Arial"));
+        settextcolor(RGB(100, 100, 100));
+        outtextxy(330, 500, _T("Press ESC to return to main menu"));
+        
+        // 刷新屏幕
+        FlushBatchDraw();
+        
+        // 处理输入
+        ExMessage msg;
+        if (peekmessage(&msg, EM_KEY)) {
+            if (msg.message == WM_KEYDOWN && msg.vkcode == VK_ESCAPE) {
+                instructionsActive = false;
+                resetGameToMenu();  // 重置游戏状态
+                showMainMenu();
+            }
         }
-        fclose(file);
-    } else {
-        // 如果文件不存在，显示默认说明
-        printf("        游戏元素说明：\n");
-        printf("        ■ - 墙壁\n");
-        printf("        ♀ - 玩家\n");
-        printf("        □ - 箱子\n");
-        printf("        ★ - 目标点\n");
-        printf("        ☆ - 箱子放在目标点上\n");
-        printf("        ♂ - 玩家站在目标点上\n\n");
         
-        printf("        操作说明：\n");
-        printf("        WASD或方向键 - 控制玩家移动\n");
-        printf("        R键 - 重置当前关卡\n");
-        printf("        ESC键 - 返回主菜单\n\n");
-        
-        printf("        游戏规则：\n");
-        printf("        1. 通过控制人物移动，将所有箱子推到目标点上\n");
-        printf("        2. 箱子只能被推，不能被拉\n");
-        printf("        3. 一次只能推动一个箱子\n");
-        printf("        4. 当所有箱子都放到目标点上时，过关成功\n");
-        
-        // 创建说明文件以供将来使用
-        file = fopen("instructions.txt", "w");
-        if (file) {
-            fprintf(file, "游戏元素说明：\n");
-            fprintf(file, "■ - 墙壁\n");
-            fprintf(file, "♀ - 玩家\n");
-            fprintf(file, "□ - 箱子\n");
-            fprintf(file, "★ - 目标点\n");
-            fprintf(file, "☆ - 箱子放在目标点上\n");
-            fprintf(file, "♂ - 玩家站在目标点上\n\n");
-            
-            fprintf(file, "操作说明：\n");
-            fprintf(file, "WASD或方向键 - 控制玩家移动\n");
-            fprintf(file, "R键 - 重置当前关卡\n");
-            fprintf(file, "ESC键 - 返回主菜单\n\n");
-            
-            fprintf(file, "游戏规则：\n");
-            fprintf(file, "1. 通过控制人物移动，将所有箱子推到目标点上\n");
-            fprintf(file, "2. 箱子只能被推，不能被拉\n");
-            fprintf(file, "3. 一次只能推动一个箱子\n");
-            fprintf(file, "4. 当所有箱子都放到目标点上时，过关成功\n");
-            fclose(file);
-        }
+        // 控制帧率
+        Sleep(50);
     }
-    
-    printf("\n\n        按任意键返回主菜单...");
-    _getch();
-    showMainMenu();
 }
 
 // 初始化玩家动画
@@ -351,60 +501,87 @@ void initPlayerAnim() {
     playerAnim.moving = false;
 }
 
-// 玩家移动时更新动画帧
+// 更新玩家动画方向和移动状态
 void updatePlayerAnim(PlayerDir dir, bool moving) {
-    if (playerAnim.dir != dir) {
-        playerAnim.dir = dir;
-        playerAnim.walkFrame = 0;
-    }
+    playerAnim.dir = dir;
     playerAnim.moving = moving;
-}
-
-// 玩家移动一格后切换帧
-void nextPlayerAnimFrame() {
-    switch (playerAnim.dir) {
-        case DIR_UP:
-        case DIR_DOWN:
-            playerAnim.walkFrame = (playerAnim.walkFrame == 0) ? 1 : (playerAnim.walkFrame == 1 ? 2 : 0);
-            if (playerAnim.walkFrame > 2) playerAnim.walkFrame = 0;
-            break;
-        case DIR_LEFT:
-        case DIR_RIGHT:
-            playerAnim.walkFrame = (playerAnim.walkFrame == 0) ? 1 : 0;
-            break;
+    if (!moving) {
+        playerAnim.walkFrame = 0; // 站立状态
     }
 }
 
-// 手动实现PNG alpha混合的绘制函数
-void drawAlpha(IMAGE* picture, int picture_x, int picture_y) //x为载入图片的X坐标，y为Y坐标
-{
-    DWORD *dst = GetImageBuffer();    // 目标显存指针
-    DWORD *draw = GetImageBuffer();
-    DWORD *src = GetImageBuffer(picture); //图片显存指针
-    int picture_width = picture->getwidth();
-    int picture_height = picture->getheight();
-    int graphWidth = getwidth();
-    int graphHeight = getheight();
-    int dstX = 0;
-    for (int iy = 0; iy < picture_height; iy++)
-    {
-        for (int ix = 0; ix < picture_width; ix++)
-        {
-            int srcX = ix + iy * picture_width;
-            int sa = ((src[srcX] & 0xff000000) >> 24);
-            int sr = ((src[srcX] & 0xff0000) >> 16);
-            int sg = ((src[srcX] & 0xff00) >> 8);
-            int sb = src[srcX] & 0xff;
-            if (ix + picture_x >= 0 && ix + picture_x < graphWidth && iy + picture_y >= 0 && iy + picture_y < graphHeight)
-            {
-                dstX = (ix + picture_x) + (iy + picture_y) * graphWidth;
-                int dr = ((dst[dstX] & 0xff0000) >> 16);
-                int dg = ((dst[dstX] & 0xff00) >> 8);
-                int db = dst[dstX] & 0xff;
-                draw[dstX] = ((sr * sa / 255 + dr * (255 - sa) / 255) << 16)
-                    | ((sg * sa / 255 + dg * (255 - sa) / 255) << 8)
-                    | (sb * sa / 255 + db * (255 - sa) / 255);
+// 切换动画帧
+void nextPlayerAnimFrame() {
+    if (playerAnim.moving) {
+        playerAnim.walkFrame = (playerAnim.walkFrame + 1) % 3;
+        if (playerAnim.walkFrame == 0) playerAnim.walkFrame = 1; // 跳过静止帧
+    }
+}
+
+// PNG带alpha通道手动混合绘制函数
+void drawAlpha(IMAGE* picture, int picture_x, int picture_y) {
+    // 实现PNG透明图层的绘制
+    // 获取图像的宽和高
+    DWORD *dst = GetImageBuffer();
+    DWORD *src = GetImageBuffer(picture);
+    int src_width = picture->getwidth();
+    int src_height = picture->getheight();
+    int dst_width = getwidth();
+    int dst_height = getheight();
+
+    // 计算贴图的实际长宽
+    int real_width = (picture_x + src_width > dst_width) ? dst_width - picture_x : src_width;
+    int real_height = (picture_y + src_height > dst_height) ? dst_height - picture_y : src_height;
+
+    // 修正负坐标
+    if (picture_x < 0) { src += -picture_x;  real_width -= -picture_x;  picture_x = 0; }
+    if (picture_y < 0) { src += -picture_y * src_width;  real_height -= -picture_y;  picture_y = 0; }
+
+    // 计算指针偏移量
+    dst += picture_y * dst_width + picture_x;
+
+    // 实现透明贴图
+    for (int iy = 0; iy < real_height; ++iy) {
+        for (int ix = 0; ix < real_width; ++ix) {
+            DWORD sc = src[ix];
+            BYTE sa = ((sc & 0xff000000) >> 24);
+            if (sa > 0) {
+                // 像素点不全透明
+                BYTE sr = ((sc & 0xff0000) >> 16); // 源像素RGB分量
+                BYTE sg = ((sc & 0xff00) >> 8);
+                BYTE sb = sc & 0xff;
+                DWORD dc = dst[ix]; // 目标像素
+                BYTE dr = ((dc & 0xff0000) >> 16); // 目标像素RGB分量
+                BYTE dg = ((dc & 0xff00) >> 8);
+                BYTE db = dc & 0xff;
+
+                // 混合
+                float alpha = sa / 255.0f;
+                BYTE r = sr * alpha + dr * (1 - alpha);
+                BYTE g = sg * alpha + dg * (1 - alpha);
+                BYTE b = sb * alpha + db * (1 - alpha);
+
+                // 新像素写回
+                dst[ix] = ((r << 16) | (g << 8) | b);
             }
         }
+        dst += dst_width;
+        src += src_width;
     }
-} 
+}
+
+// 重置游戏状态，确保回到主菜单时状态正确
+void resetGameToMenu() {
+    GameState* gameState = getGameState();
+    gameState->gameState = GAME_MENU;
+    
+    // 清除可能影响菜单的状态
+    cleardevice();
+    setbkcolor(RGB(220, 220, 220));
+    cleardevice();
+    
+    // 重置菜单状态
+    menuState.selectedItem = 0;
+    menuState.menuItemCount = 4;
+    menuState.menuActive = true;
+}
