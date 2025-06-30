@@ -1,3 +1,0 @@
-D:/code/Push-Bar/build/CMakeFiles/SokobanGame.dir
-D:/code/Push-Bar/build/CMakeFiles/edit_cache.dir
-D:/code/Push-Bar/build/CMakeFiles/rebuild_cache.dir
