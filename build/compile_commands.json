@@ -1,0 +1,26 @@
+[
+{
+  "directory": "D:/code/Push-Bar/build",
+  "command": "C:\\PROGRA~1\\mingw64\\bin\\G__~1.EXE  @CMakeFiles/SokobanGame.dir/includes_CXX.rsp -g -std=gnu++11 -o CMakeFiles\\SokobanGame.dir\\main.cpp.obj -c D:\\code\\Push-Bar\\main.cpp",
+  "file": "D:/code/Push-Bar/main.cpp",
+  "output": "CMakeFiles/SokobanGame.dir/main.cpp.obj"
+},
+{
+  "directory": "D:/code/Push-Bar/build",
+  "command": "C:\\PROGRA~1\\mingw64\\bin\\G__~1.EXE  @CMakeFiles/SokobanGame.dir/includes_CXX.rsp -g -std=gnu++11 -o CMakeFiles\\SokobanGame.dir\\src\\game.cpp.obj -c D:\\code\\Push-Bar\\src\\game.cpp",
+  "file": "D:/code/Push-Bar/src/game.cpp",
+  "output": "CMakeFiles/SokobanGame.dir/src/game.cpp.obj"
+},
+{
+  "directory": "D:/code/Push-Bar/build",
+  "command": "C:\\PROGRA~1\\mingw64\\bin\\G__~1.EXE  @CMakeFiles/SokobanGame.dir/includes_CXX.rsp -g -std=gnu++11 -o CMakeFiles\\SokobanGame.dir\\src\\map.cpp.obj -c D:\\code\\Push-Bar\\src\\map.cpp",
+  "file": "D:/code/Push-Bar/src/map.cpp",
+  "output": "CMakeFiles/SokobanGame.dir/src/map.cpp.obj"
+},
+{
+  "directory": "D:/code/Push-Bar/build",
+  "command": "C:\\PROGRA~1\\mingw64\\bin\\G__~1.EXE  @CMakeFiles/SokobanGame.dir/includes_CXX.rsp -g -std=gnu++11 -o CMakeFiles\\SokobanGame.dir\\src\\ui.cpp.obj -c D:\\code\\Push-Bar\\src\\ui.cpp",
+  "file": "D:/code/Push-Bar/src/ui.cpp",
+  "output": "CMakeFiles/SokobanGame.dir/src/ui.cpp.obj"
+}
+]
