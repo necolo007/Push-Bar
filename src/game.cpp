@@ -33,7 +33,6 @@ int loadLevel(int level) {
     // 重置游戏状态
     gameState.steps = 0;
     gameState.score = 1000; // 初始分数
-    gameState.previousInput = 5; // 初始化为无效输入
     gameState.boxCount = 0;
     gameState.boxOnTarget = 0;
     gameState.currentLevel = level;
@@ -76,6 +75,25 @@ void resetLevel() {
     }
 }
 
+void undoMove() {
+    if (gameState.steps > 1) {
+        // 回退到上一步的地图状态
+        gameState.steps--;
+        memcpy(gameState.map, gameState.mapHistory[gameState.steps], sizeof(gameState.map));
+
+        // 重新查找玩家位置
+        for (int y = 0; y < gameState.mapHeight; y++) {
+            for (int x = 0; x < gameState.mapWidth; x++) {
+                if (gameState.map[y][x] == PLAYER || gameState.map[y][x] == PLAYER_TARGET) {
+                    gameState.player.x = x;
+                    gameState.player.y = y;
+                    break;
+                }
+            }
+        }
+    }
+}
+
 // 处理输入
 void handleInput(int input) {
     switch (gameState.gameState) {
@@ -91,32 +109,24 @@ void handleInput(int input) {
                 case 72:
                 case VK_UP:  // 使用VK_UP等Windows虚拟键码
                     movePlayer(UP);
-                    gameState.score -= 10;
-                    gameState.previousInput = DOWN; // 记录上一个输入
                     break;
                 case 'S': // 下
                 case 's':
                 case 80:
                 case VK_DOWN:
                     movePlayer(DOWN);
-                    gameState.score -= 10;
-                    gameState.previousInput = UP; // 记录上一个输入
                     break;
                 case 'A': // 左
                 case 'a':
                 case 75:
                 case VK_LEFT:
                     movePlayer(LEFT);
-                    gameState.score -= 10;
-                    gameState.previousInput = RIGHT; // 记录上一个输入
                     break;
                 case 'D': // 右
                 case 'd':
                 case  77:
                 case VK_RIGHT:
                     movePlayer(RIGHT);
-                    gameState.score -= 10;
-                    gameState.previousInput = LEFT; // 记录上一个输入
                     break;
                 case 'R': // 重置关卡
                 case 'r':
@@ -128,8 +138,7 @@ void handleInput(int input) {
                     break;
                 case 'v':
                 case 'V':
-                    movePlayer(gameState.previousInput); // 重复上一个输入
-                    gameState.previousInput = 5;
+                    undoMove(); // 撤销上一步操作
                     // 这里可以添加暂停逻辑
                     break;
             }
@@ -223,6 +232,7 @@ int movePlayer(int direction) {
         }
     }
 
+    gameState.score -= 10; // 减分
     // 更新玩家原位置
     if (gameState.map[gameState.player.y][gameState.player.x] == PLAYER_TARGET) {
         gameState.map[gameState.player.y][gameState.player.x] = TARGET;
@@ -243,6 +253,7 @@ int movePlayer(int direction) {
 
     // 增加步数
     gameState.steps++;
+    memcpy(gameState.mapHistory[gameState.steps], gameState.map, sizeof(gameState.map));
 
     // 玩家实际移动时，更新动画
     updatePlayerAnim(dir, true); // 设置方向和移动状态

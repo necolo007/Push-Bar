@@ -30,6 +30,8 @@
 // 最大关卡数
 #define MAX_LEVELS 5
 
+#define MAX_STEP 100 // 最大步数
+
 // 玩家位置结构
 typedef struct {
     int x;
@@ -40,6 +42,7 @@ typedef struct {
 typedef struct {
     char map[MAX_MAP_HEIGHT][MAX_MAP_WIDTH];  // 当前地图
     char originalMap[MAX_MAP_HEIGHT][MAX_MAP_WIDTH];  // 原始地图（重置用）
+    char mapHistory[MAX_STEP][MAX_MAP_HEIGHT][MAX_MAP_WIDTH]; //悔棋用
     int mapHeight;  // 地图高度
     int mapWidth;   // 地图宽度
     Position player; // 玩家位置
@@ -49,7 +52,6 @@ typedef struct {
     int boxOnTarget; // 已放到目标点的箱子数
     int currentLevel; // 当前关卡
     int gameState;   // 游戏状态
-    int previousInput; // 上一个输入
 } GameState;
 
 // 游戏初始化
@@ -71,6 +73,8 @@ int movePlayer(int direction);
 int checkWin();
 
 int checkFail();
+
+void undoMove(); // 撤销上一步操作
 
 // 获取游戏状态
 GameState* getGameState();

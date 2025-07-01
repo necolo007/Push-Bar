@@ -21,6 +21,9 @@ void showMainMenu();
 // 处理菜单输入
 void handleMenuInput(int input);
 
+// 执行菜单项动作
+void executeMenuAction(int itemIndex);
+
 // 绘制菜单项
 void drawMenuItem(int x, int y, const char* text, bool selected);
 
@@ -33,6 +36,7 @@ void showGame();
 // 显示游戏胜利界面
 void showWinScreen();
 
+// 显示失败界面
 void showFailScreen();
 
 // 显示关卡选择界面

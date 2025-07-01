@@ -39,9 +39,6 @@ int main() {
     // End batch drawing
     EndBatchDraw();
     
-    // Release image resources
-    freeUIResources();
-    
     // Close graphics window
     closegraph();
     return 0;

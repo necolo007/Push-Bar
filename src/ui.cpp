@@ -42,8 +42,6 @@ void initUIResources() {
     loadimage(&img_player_right_walk, _T("res/player_right_walk.png"));
 }
 
-// 释放图片资源（EasyX 无需手动释放，但可留空以便扩展）
-void freeUIResources() {}
 
 // 初始化文本设置
 void initTextSettings() {
@@ -60,7 +58,7 @@ void clearScreen() {
 void processWindowMessage() {
     // 检查是否有消息
     ExMessage msg;
-    if (peekmessage(&msg, EM_KEY)) {
+    if (peekmessage(&msg, EM_MOUSE | EM_KEY)) {
         if (msg.message == WM_KEYDOWN) {
             // 将EasyX按键消息转换为字符输入
             int input;
@@ -76,13 +74,38 @@ void processWindowMessage() {
             }
             // 处理输入
             handleInput(input);
+        } else if (msg.message == WM_LBUTTONDOWN) {
+            // 根据鼠标点击位置转换为方向键输入
+            GameState* gameState = getGameState();
+            int cellSize = 64;
+            int offsetX = 50, offsetY = 80;
+            
+            // 计算玩家在屏幕上的像素位置
+            int playerScreenX = offsetX + gameState->player.x * cellSize + cellSize/2;
+            int playerScreenY = offsetY + gameState->player.y * cellSize + cellSize/2;
+            
+            // 根据鼠标点击的方向决定移动方向
+            int dx = msg.x - playerScreenX;
+            int dy = msg.y - playerScreenY;
+            
+            // 判断主要移动方向（水平或垂直）
+            if (abs(dx) > abs(dy)) {
+                // 水平移动为主
+                if (dx > 0) {
+                    handleInput('d'); // 向右
+                } else {
+                    handleInput('a'); // 向左
+                }
+            } else {
+                // 垂直移动为主
+                if (dy > 0) {
+                    handleInput('s'); // 向下
+                } else {
+                    handleInput('w'); // 向上
+                }
+            }
         }
     }
-}
-
-// 设置控制台光标位置 - 在图形界面中不需要
-void gotoxy(int x, int y) {
-    // 在图形界面中这个函数不会被使用
 }
 
 // 绘制菜单项
@@ -141,10 +164,12 @@ void showMainMenu() {
         // 刷新屏幕
         FlushBatchDraw();
         
-        // 处理输入
+        // 处理输入 - 同时获取键盘和鼠标消息
         ExMessage msg;
-        if (peekmessage(&msg, EM_KEY)) {
+        // 使用EM_MOUSE | EM_KEY获取所有类型的消息
+        if (peekmessage(&msg, EM_MOUSE | EM_KEY)) {
             if (msg.message == WM_KEYDOWN) {
+                // 键盘处理逻辑保持不变
                 switch (msg.vkcode) {
                     case VK_UP:
                         menuState.selectedItem = (menuState.selectedItem + menuState.menuItemCount - 1) % menuState.menuItemCount;
@@ -153,33 +178,33 @@ void showMainMenu() {
                         menuState.selectedItem = (menuState.selectedItem + 1) % menuState.menuItemCount;
                         break;
                     case VK_RETURN:
-                        switch (menuState.selectedItem) {
-                            case 0: // 开始游戏
-                                menuState.menuActive = false;
-                                if (loadLevel(1)) {
-                                    showGame();
-                                }
-                                break;
-                            case 1: // 选择关卡
-                                menuState.menuActive = false;
-                                getGameState()->gameState = GAME_SELECT;
-                                showLevelSelect();
-                                break;
-                            case 2: // 游戏说明
-                                menuState.menuActive = false;
-                                showInstructions();
-                                break;
-                            case 3: // 退出游戏
-                                exit(0);
-                                break;
-                        }
+                        executeMenuAction(menuState.selectedItem);
                         break;
+                }
+            } else if (msg.message == WM_MOUSEMOVE) {
+                // 鼠标移动时更新选中项（实现悬停效果）
+                for (int i = 0; i < menuState.menuItemCount; i++) {
+                    int itemY = 200 + i * 60;
+                    // 扩大检测区域以提高响应性
+                    if (msg.x >= 260 && msg.x <= 660 && msg.y >= itemY - 25 && msg.y <= itemY + 25) {
+                        menuState.selectedItem = i;
+                        break;  // 找到后立即退出循环
+                    }
+                }
+            } else if (msg.message == WM_LBUTTONDOWN) {
+                // 鼠标左键点击处理
+                for (int i = 0; i < menuState.menuItemCount; i++) {
+                    int itemY = 200 + i * 60;
+                    if (msg.x >= 260 && msg.x <= 660 && msg.y >= itemY - 25 && msg.y <= itemY + 25) {
+                        menuState.selectedItem = i;
+                        executeMenuAction(menuState.selectedItem);
+                        break;  // 找到后立即退出循环
+                    }
                 }
             }
         }
-        
         // 控制帧率
-        Sleep(50);
+        Sleep(20);
     }
 }
 
@@ -188,6 +213,30 @@ void handleMenuInput(int input) {
     // 此函数不再需要，但保留接口兼容性
     GameState* gameState = getGameState();
     // 将直接在菜单绘制函数中处理输入
+}
+
+// 执行菜单项动作
+void executeMenuAction(int itemIndex) {
+    switch (itemIndex) {
+        case 0: // 开始游戏
+            menuState.menuActive = false;
+            if (loadLevel(1)) {
+                showGame();
+            }
+            break;
+        case 1: // 选择关卡
+            menuState.menuActive = false;
+            getGameState()->gameState = GAME_SELECT;
+            showLevelSelect();
+            break;
+        case 2: // 游戏说明
+            menuState.menuActive = false;
+            showInstructions();
+            break;
+        case 3: // 退出游戏
+            exit(0);
+            break;
+    }
 }
 
 // 显示游戏界面
@@ -333,7 +382,7 @@ void showWinScreen() {
         
         // 处理输入
         ExMessage msg;
-        if (peekmessage(&msg, EM_KEY)) {
+        if (peekmessage(&msg, EM_MOUSE | EM_KEY)) {
             if (msg.message == WM_KEYDOWN) {
                 if (msg.vkcode == VK_RETURN || msg.vkcode == VK_SPACE) {
                     winScreenActive = false;
@@ -351,6 +400,19 @@ void showWinScreen() {
                     // ESC键也可以返回主菜单
                     winScreenActive = false;
                     resetGameToMenu();  // 重置游戏状态
+                    showMainMenu();
+                }
+            } else if (msg.message == WM_LBUTTONDOWN) {
+                // 处理鼠标点击
+                if (gameState->currentLevel < MAX_LEVELS) {
+                    // 点击任意位置进入下一关
+                    winScreenActive = false;
+                    loadLevel(gameState->currentLevel + 1);
+                    showGame();
+                } else {
+                    // 点击任意位置返回主菜单
+                    winScreenActive = false;
+                    resetGameToMenu();
                     showMainMenu();
                 }
             }
@@ -406,9 +468,9 @@ void showLevelSelect() {
         // 刷新屏幕
         FlushBatchDraw();
         
-        // 处理输入
+        // 处理输入 - 同时获取键盘和鼠标消息
         ExMessage msg;
-        if (peekmessage(&msg, EM_KEY)) {
+        if (peekmessage(&msg, EM_MOUSE | EM_KEY)) {
             if (msg.message == WM_KEYDOWN) {
                 switch (msg.vkcode) {
                     case VK_UP:
@@ -430,11 +492,39 @@ void showLevelSelect() {
                         showMainMenu();
                         break;
                 }
+            } else if (msg.message == WM_MOUSEMOVE) {
+                // 鼠标悬停选择关卡
+                for (int i = 1; i <= MAX_LEVELS; i++) {
+                    int itemY = 180 + (i - 1) * 50;
+                    if (msg.x >= 360 && msg.x <= 500 && msg.y >= itemY - 15 && msg.y <= itemY + 15) {
+                        selectedLevel = i;
+                        break;
+                    }
+                }
+            } else if (msg.message == WM_LBUTTONDOWN) {
+                // 鼠标点击选择关卡
+                for (int i = 1; i <= MAX_LEVELS; i++) {
+                    int itemY = 180 + (i - 1) * 50;
+                    if (msg.x >= 360 && msg.x <= 500 && msg.y >= itemY - 15 && msg.y <= itemY + 15) {
+                        selectedLevel = i;
+                        levelSelectActive = false;
+                        loadLevel(selectedLevel);
+                        showGame();
+                        break;
+                    }
+                }
+                
+                // 检查"返回"按钮区域
+                if (msg.x >= 260 && msg.x <= 520 && msg.y >= 490 && msg.y <= 520) {
+                    levelSelectActive = false;
+                    resetGameToMenu();
+                    showMainMenu();
+                }
             }
         }
         
         // 控制帧率
-        Sleep(50);
+        Sleep(25);
     }
 }
 
@@ -472,7 +562,7 @@ void showFailScreen() {
         
         // 处理输入
         ExMessage msg;
-        if (peekmessage(&msg, EM_KEY)) {
+        if (peekmessage(&msg, EM_MOUSE | EM_KEY)) {
             if (msg.message == WM_KEYDOWN) {
                 if (msg.vkcode == VK_RETURN) {
                     failScreenActive = false;
@@ -483,6 +573,11 @@ void showFailScreen() {
                     resetGameToMenu();  // 重置游戏状态
                     showMainMenu();
                 }
+            } else if (msg.message == WM_LBUTTONDOWN) {
+                // 点击任何位置返回主菜单
+                failScreenActive = false;
+                resetGameToMenu();  // 重置游戏状态
+                showMainMenu();
             }
         }
         
@@ -536,11 +631,18 @@ void showInstructions() {
         
         // 处理输入
         ExMessage msg;
-        if (peekmessage(&msg, EM_KEY)) {
+        if (peekmessage(&msg, EM_MOUSE | EM_KEY)) {
             if (msg.message == WM_KEYDOWN && msg.vkcode == VK_ESCAPE) {
                 instructionsActive = false;
                 resetGameToMenu();  // 重置游戏状态
                 showMainMenu();
+            } else if (msg.message == WM_LBUTTONDOWN) {
+                // 检查"返回"按钮区域
+                if (msg.x >= 330 - 100 && msg.x <= 330 + 300 && msg.y >= 500 - 10 && msg.y <= 500 + 30) {
+                    instructionsActive = false;
+                    resetGameToMenu();  // 重置游戏状态
+                    showMainMenu();
+                }
             }
         }
         
