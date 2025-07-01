@@ -21,6 +21,7 @@
 #define GAME_PLAYING  1  // 游戏中
 #define GAME_WON      2  // 游戏胜利
 #define GAME_SELECT   3  // 选择关卡
+#define GAME_FAILED   4  // 游戏失败
 
 // 最大地图尺寸
 #define MAX_MAP_HEIGHT 20
@@ -48,6 +49,7 @@ typedef struct {
     int boxOnTarget; // 已放到目标点的箱子数
     int currentLevel; // 当前关卡
     int gameState;   // 游戏状态
+    int previousInput; // 上一个输入
 } GameState;
 
 // 游戏初始化
@@ -67,6 +69,8 @@ int movePlayer(int direction);
 
 // 检查游戏是否胜利
 int checkWin();
+
+int checkFail();
 
 // 获取游戏状态
 GameState* getGameState();

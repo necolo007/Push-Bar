@@ -12,24 +12,10 @@
 #include "ui.h"
 #include "map.h"
 
-// Set up text and font for UI
-void setupTextEnvironment() {
-    // Set font properties
-    LOGFONT font;
-    gettextstyle(&font);
-    font.lfCharSet = DEFAULT_CHARSET;  // Use default character set
-    font.lfQuality = ANTIALIASED_QUALITY;  // Anti-aliased text for better display
-    _tcscpy(font.lfFaceName, _T("Arial"));  // Use Arial font
-    font.lfWeight = FW_NORMAL;  // Normal weight
-    settextstyle(&font);
-    
-    // Set text properties
-    setbkmode(TRANSPARENT);  // Transparent background for text
-}
 
 int main() {
     // Initialize EasyX graphics window
-    initgraph(900, 700);  // Create window
+    initgraph(900, 900);  // Create window
     
     // Set window title
     HWND hwnd = GetHWnd();
@@ -38,9 +24,6 @@ int main() {
     // Set background color
     setbkcolor(RGB(240, 240, 240));
     cleardevice();
-    
-    // Set text environment
-    setupTextEnvironment();
     
     // Enable batch drawing mode for better rendering efficiency
     BeginBatchDraw();

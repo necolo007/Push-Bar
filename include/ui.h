@@ -33,6 +33,8 @@ void showGame();
 // 显示游戏胜利界面
 void showWinScreen();
 
+void showFailScreen();
+
 // 显示关卡选择界面
 void showLevelSelect();
 

@@ -288,6 +288,8 @@ void showGame() {
     } else if (gameState->gameState == GAME_MENU) {
         resetGameToMenu();  // 重置游戏状态到主菜单
         showMainMenu();
+    } else if (gameState->gameState == GAME_FAILED) {
+        showFailScreen();  // 显示游戏失败界面
     }
 }
 
@@ -427,6 +429,59 @@ void showLevelSelect() {
                         resetGameToMenu();  // 重置游戏状态
                         showMainMenu();
                         break;
+                }
+            }
+        }
+        
+        // 控制帧率
+        Sleep(50);
+    }
+}
+
+void showFailScreen() {
+    GameState* gameState = getGameState();
+    bool failScreenActive = true;
+    
+    // 初始化文本设置
+    initTextSettings();
+    
+    while (failScreenActive && gameState->gameState == GAME_FAILED) {
+        cleardevice();
+        setbkcolor(RGB(240, 200, 200));
+        cleardevice();
+        
+        // 绘制失败信息
+        settextstyle(40, 0, _T("Arial"));
+        settextcolor(RGB(180, 0, 0));
+        setbkmode(TRANSPARENT);
+        outtextxy(300, 150, _T("Game Over!"));
+        
+        // 显示统计信息
+        settextstyle(28, 0, _T("Arial"));
+        settextcolor(RGB(0, 0, 0));
+        TCHAR info[128];
+        _stprintf(info, _T("Total Steps: %d  Total Score: %d"), gameState->steps, gameState->score);
+        outtextxy(310, 240, info);
+        
+        // 返回提示
+        settextstyle(24, 0, _T("Arial"));
+        outtextxy(260, 320, _T("Press Enter to return to main menu"));
+        
+        // 刷新屏幕
+        FlushBatchDraw();
+        
+        // 处理输入
+        ExMessage msg;
+        if (peekmessage(&msg, EM_KEY)) {
+            if (msg.message == WM_KEYDOWN) {
+                if (msg.vkcode == VK_RETURN) {
+                    failScreenActive = false;
+                    resetGameToMenu();  // 重置游戏状态
+                    showMainMenu();     // 显示主菜单
+                } else if (msg.vkcode == VK_ESCAPE) {
+                    failScreenActive = false;
+                    resetGameToMenu();  // 重置游戏状态
+                    showMainMenu();
                 }
             }
         }

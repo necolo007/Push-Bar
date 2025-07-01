@@ -32,7 +32,8 @@ int loadLevel(int level) {
 
     // 重置游戏状态
     gameState.steps = 0;
-    gameState.score = 0;
+    gameState.score = 1000; // 初始分数
+    gameState.previousInput = 5; // 初始化为无效输入
     gameState.boxCount = 0;
     gameState.boxOnTarget = 0;
     gameState.currentLevel = level;
@@ -87,23 +88,35 @@ void handleInput(int input) {
             switch (input) {
                 case 'W': // 上 (注意大小写都支持)
                 case 'w':
+                case 72:
                 case VK_UP:  // 使用VK_UP等Windows虚拟键码
                     movePlayer(UP);
+                    gameState.score -= 10;
+                    gameState.previousInput = DOWN; // 记录上一个输入
                     break;
                 case 'S': // 下
                 case 's':
+                case 80:
                 case VK_DOWN:
                     movePlayer(DOWN);
+                    gameState.score -= 10;
+                    gameState.previousInput = UP; // 记录上一个输入
                     break;
                 case 'A': // 左
                 case 'a':
+                case 75:
                 case VK_LEFT:
                     movePlayer(LEFT);
+                    gameState.score -= 10;
+                    gameState.previousInput = RIGHT; // 记录上一个输入
                     break;
                 case 'D': // 右
                 case 'd':
+                case  77:
                 case VK_RIGHT:
                     movePlayer(RIGHT);
+                    gameState.score -= 10;
+                    gameState.previousInput = LEFT; // 记录上一个输入
                     break;
                 case 'R': // 重置关卡
                 case 'r':
@@ -113,11 +126,20 @@ void handleInput(int input) {
                     gameState.gameState = GAME_MENU;
                     // 游戏逻辑中只负责改变状态，不直接调用UI函数
                     break;
+                case 'v':
+                case 'V':
+                    movePlayer(gameState.previousInput); // 重复上一个输入
+                    gameState.previousInput = 5;
+                    // 这里可以添加暂停逻辑
+                    break;
             }
             
             // 检查游戏是否胜利
             if (checkWin()) {
                 gameState.gameState = GAME_WON;
+            }
+            if (checkFail()) {
+                gameState.gameState = GAME_FAILED; // 游戏失败状态
             }
             break;
 
@@ -127,6 +149,9 @@ void handleInput(int input) {
 
         case GAME_SELECT:
             // 关卡选择的输入现在在showLevelSelect中处理
+            break;
+        case GAME_FAILED:
+            // 游戏失败界面的输入现在在showFailScreen中处理
             break;
     }
 }
@@ -229,6 +254,15 @@ int movePlayer(int direction) {
 // 检查游戏是否胜利
 int checkWin() {
     return gameState.boxOnTarget == gameState.boxCount;
+}
+
+int checkFail() {
+    // 游戏失败的条件可以根据需要定义
+    // 例如：如果步数超过某个限制，或者分数低于0等
+    if (gameState.score < 0) {
+        return 1; // 游戏失败
+    }
+    return 0; // 游戏未失败
 }
 
 // 获取游戏状态
